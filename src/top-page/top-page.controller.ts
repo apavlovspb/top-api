@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Logger,
   NotFoundException,
   Param,
   Patch,
@@ -13,17 +14,21 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jst.guard';
+import { HhService } from 'src/hh/hh.service';
 import { IdValidationPipe } from 'src/pipes/id-validation.pipe';
 import { CreateTopPageDto } from './dto/create.top-page.dto';
 
 import { FindTopPageDto } from './dto/find-top-page.dto';
 import { NOT_FOUND_TOPPAGE } from './top-page.constants';
-import { TopPageModel } from './top-page.model';
+
 import { TopPageService } from './top-page.service';
 
 @Controller('top-page')
 export class TopPageController {
-  constructor(private readonly topPageService: TopPageService) {}
+  constructor(
+    private readonly topPageService: TopPageService,
+    private readonly hhService: HhService,
+  ) {}
   @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(@Body() dto: CreateTopPageDto) {
@@ -76,5 +81,17 @@ export class TopPageController {
   @Get('textSearch/:text')
   async textSearch(@Param('text') text: string) {
     return this.topPageService.findByText(text);
+  }
+  @HttpCode(200)
+  @Post('test')
+  async test() {
+    const data = await this.topPageService.findForHhUpdate(new Date());
+    Logger.log(data);
+    for (const page of data) {
+      const hhData = await this.hhService.getData(page.category);
+      Logger.log(hhData);
+      page.hh = hhData;
+      await this.topPageService.update(page._id, page);
+    }
   }
 }
