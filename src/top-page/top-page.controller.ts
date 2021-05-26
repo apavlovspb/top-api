@@ -13,6 +13,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { JwtAuthGuard } from 'src/auth/guards/jst.guard';
 import { HhService } from 'src/hh/hh.service';
 import { IdValidationPipe } from 'src/pipes/id-validation.pipe';
@@ -28,6 +29,7 @@ export class TopPageController {
   constructor(
     private readonly topPageService: TopPageService,
     private readonly hhService: HhService,
+    private readonly scheduleRegistry: SchedulerRegistry,
   ) {}
   @UseGuards(JwtAuthGuard)
   @Post('create')
@@ -82,9 +84,12 @@ export class TopPageController {
   async textSearch(@Param('text') text: string) {
     return this.topPageService.findByText(text);
   }
-  @HttpCode(200)
-  @Post('test')
+  // @HttpCode(200)
+  // @Post('test')
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'test' })
   async test() {
+    const job = this.scheduleRegistry.getCronJob('test');
+
     const data = await this.topPageService.findForHhUpdate(new Date());
     Logger.log(data);
     for (const page of data) {
